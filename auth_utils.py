@@ -5,9 +5,11 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 
 SECRET_KEY = os.getenv("SECRET_KEY", "fallback-for-dev")
-ALGORITHM = "HS256"
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
+
+# tokenUrl 指向我們的登入端點
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/google")
-ACCESS_TOKEN_EXPIRE_MINUTES=60
 
 def create_access_token(data: dict):
     """建立 JWT Access Token"""
@@ -27,14 +29,11 @@ def get_current_user_email(token: str = Depends(oauth2_scheme)) -> str:
         detail="無法驗證憑證",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
     try:
         # 解碼 JWT
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        
         # 取得 subject (我們存放 email 的欄位)
         email: str = payload.get("sub")
-        
         if email is None:
             raise credentials_exception
         return email
